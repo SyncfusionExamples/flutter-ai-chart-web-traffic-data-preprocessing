@@ -4,7 +4,6 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 
 /// Chart import.
 import 'package:syncfusion_flutter_charts/charts.dart';
-import 'package:syncfusion_flutter_core/theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -165,7 +164,10 @@ class AIDataPreProcessingState extends State<AIDataPreProcessing>
         maximum: DateTime(2020, 1, 25, 24, 00),
         interval: 1,
         dateFormat: DateFormat().add_H(),
-        majorGridLines: const MajorGridLines(dashArray: [4, 4, 4]),
+        majorGridLines: const MajorGridLines(
+          dashArray: [8, 8],
+          width: 0.8,
+        ),
         title: AxisTitle(
           text: 'Time during 25th January 2020',
           textStyle: TextStyle(fontWeight: FontWeight.bold),
@@ -183,7 +185,7 @@ class AIDataPreProcessingState extends State<AIDataPreProcessing>
         interval: 200,
         majorGridLines: MajorGridLines(width: 0),
         title: AxisTitle(
-          text: 'Traffic count',
+          text: 'Traffic Count',
           textStyle: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
@@ -198,7 +200,86 @@ class AIDataPreProcessingState extends State<AIDataPreProcessing>
           args.chartPointInfo.chartPoint!.color = args.chartPointInfo.color;
         }
       },
-      trackballBehavior: _CustomTrackballBehavior(),
+      trackballBehavior: TrackballBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        tooltipSettings: InteractiveTooltip(
+          arrowWidth: 0,
+          arrowLength: 0,
+        ),
+        markerSettings: TrackballMarkerSettings(
+          markerVisibility: TrackballVisibilityMode.visible,
+          borderWidth: 2.5,
+        ),
+        builder: (BuildContext context, TrackballDetails trackballDetails) {
+          return Container(
+            decoration: BoxDecoration(
+              color: Colors.blueGrey.shade100,
+              borderRadius: BorderRadius.all(Radius.circular(5)),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(10),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                spacing: 10,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 12,
+                          height: 12,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: trackballDetails.point!.color!,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    spacing: 5,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Time Stamp : ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('DD-MM-yyyy HH:mm:ss')
+                                .format(trackballDetails.point!.x),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Traffic Count : ',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            '${trackballDetails.point!.y}',
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
       series: _buildSpLineSeries(),
     );
   }
@@ -221,7 +302,6 @@ class AIDataPreProcessingState extends State<AIDataPreProcessing>
   String _generatePrompt() {
     final String rules =
         'Only include values in the yyyy-MM-dd-HH-m-ss:Value format,'
-        'Value should calculate between range from 600 to 1400'
         'and ensure they strictly adhere to this format without any additional explanations.'
         'Unwanted content should be strictly avoided.';
 
@@ -324,7 +404,7 @@ class _AIButtonState extends State<_AIButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
-  bool _isPressed = false; // Track the pressed state
+  bool _isPressed = false; // Track the pressed state.
 
   @override
   void initState() {
@@ -382,6 +462,7 @@ class _AIButtonState extends State<_AIButton>
   @override
   void dispose() {
     _controller.dispose();
+    _isPressed = false;
     super.dispose();
   }
 }
@@ -392,81 +473,4 @@ class _WebTraffic {
   final DateTime timeStamp;
   final double? trafficCount;
   Color? color;
-}
-
-// ignore: must_be_immutable
-class _CustomTrackballBehavior extends TrackballBehavior {
-  @override
-  bool get enable => true;
-
-  @override
-  ActivationMode get activationMode => ActivationMode.singleTap;
-
-  @override
-  Color? get lineColor => Colors.transparent;
-
-  @override
-  InteractiveTooltip get tooltipSettings => InteractiveTooltip(
-        arrowWidth: 0,
-        arrowLength: 0,
-      );
-
-  @override
-  ChartTrackballBuilder? get builder {
-    return (BuildContext context, TrackballDetails trackballDetails) {
-      return Container(
-        decoration: BoxDecoration(
-          color: Colors.grey.shade200,
-          borderRadius: BorderRadius.all(Radius.circular(5)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.all(10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            spacing: 5,
-            children: [
-              Text(
-                'Time Stamp : ${DateFormat('DD-MM-yyyy HH:mm:ss').format(trackballDetails.point!.x)}',
-                style: TextStyle(color: trackballDetails.point!.color),
-              ),
-              Text(
-                'Traffic Count : ${trackballDetails.point!.y}',
-                style: TextStyle(color: trackballDetails.point!.color),
-              ),
-            ],
-          ),
-        ),
-      );
-    };
-  }
-
-  @override
-  void onPaint(PaintingContext context, Offset offset,
-      SfChartThemeData chartThemeData, ThemeData themeData) {
-    super.onPaint(context, offset, chartThemeData, themeData);
-
-    if (chartPointInfo.isEmpty || parentBox == null) {
-      return;
-    }
-
-    final int length = chartPointInfo.length;
-    for (int i = 0; i < length; i++) {
-      final Offset position =
-          Offset(chartPointInfo[i].xPosition!, chartPointInfo[i].yPosition!);
-      context.canvas.drawCircle(
-          position,
-          8,
-          Paint()
-            ..style = PaintingStyle.fill
-            ..color = chartPointInfo[i].color!);
-      context.canvas.drawCircle(
-          position,
-          8,
-          Paint()
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = 2
-            ..color = Colors.white);
-    }
-  }
 }
